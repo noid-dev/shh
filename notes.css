@@ -1,0 +1,267 @@
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('fonts/IBMPlexMono-Regular.woff2') format('woff2');
+  font-display: swap;
+}
+
+@property --highlight-top {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --highlight-height {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+:root {
+  --font: 'IBM Plex Mono', Consolas, Menlo, ui-monospace, monospace;
+  --type-size: 4.233;
+  --line-height: 1.5;
+  --sheet-width: 210;
+  --sheet-height: 297;
+  --sheet-rows: 38;
+  --row: calc(var(--type-size) * var(--line-height));
+  --sheet-foot: calc(var(--sheet-height) - 25.4 - var(--sheet-rows) * var(--row));
+  --mm: min(0.85rem / var(--type-size), 100vw / (var(--sheet-width) + 2 * var(--row)));
+  --gap: calc(var(--row) * var(--mm));
+  --page-margin: calc(25.4 * var(--mm));
+
+  color-scheme: light dark;
+  --backdrop: light-dark(#e4dfd4, #131211);
+  --paper: light-dark(#fcfaf5, #242220);
+  --text: light-dark(#2b2824, #d9d2c3);
+  --muted: light-dark(#655e53, #8a8478);
+  --accent: light-dark(#34567a, #8fb0d3);
+  --mark: color-mix(in oklab, var(--muted) 45%, transparent);
+  --shadow: 0 0.5px 1px rgb(60 45 25 / 0.1), 0 2px 6px rgb(60 45 25 / 0.05), 0 18px 48px rgb(60 45 25 / 0.09);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --shadow: 0 0 0 1px rgb(255 255 255 / 0.03), 0 18px 48px rgb(0 0 0 / 0.45);
+  }
+}
+
+*,
+::before,
+::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--backdrop);
+  scrollbar-gutter: stable both-edges;
+  scrollbar-color: var(--muted) transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+}
+
+body:not(.reading) article,
+.reading :is(main, footer) {
+  display: none;
+}
+
+main,
+article {
+  width: calc(var(--sheet-width) * var(--mm));
+  margin-block: var(--gap) 0;
+  margin-inline: auto;
+  font: calc(var(--type-size) * var(--mm)) / var(--line-height) var(--font);
+  tab-size: 2;
+  color: var(--text);
+}
+
+main,
+section {
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+main ::selection,
+article ::selection {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+/* Text wraps the same way everywhere, which page splitting relies on. break-spaces makes spaces wrap
+   like letters instead of hanging past the edge, which browsers do differently. */
+main > *,
+section {
+  white-space: break-spaces;
+  overflow-wrap: break-word;
+}
+
+/* Never shorter than the window; as long as the text needs. No bottom edge: it runs into the roll.
+   The cursor line's highlight is part of the paper's own background, so every browser repaints it at once. */
+main {
+  --highlight: color-mix(in oklab, var(--accent) 7%, transparent);
+  position: relative;
+  display: grid;
+  grid-template-areas: 'text';
+  grid-template-columns: minmax(0, 1fr);
+  min-height: calc(100dvh - var(--gap));
+  padding: var(--page-margin);
+  border-radius: 2px 2px 0 0;
+  background:
+    linear-gradient(var(--highlight) 0 0)
+      calc(var(--page-margin) - 0.5em) var(--highlight-top) /
+      calc(100% - 2 * var(--page-margin) + 1em) var(--highlight-height) no-repeat,
+    var(--paper);
+}
+
+main:not(:focus-within) {
+  --highlight: transparent;
+}
+
+main > * {
+  grid-area: text;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font: inherit;
+}
+
+textarea {
+  overflow: hidden;
+  resize: none;
+  outline: none;
+  color: inherit;
+  caret-color: var(--accent);
+  background: none;
+}
+
+textarea::placeholder {
+  color: currentColor;
+  opacity: 0.5;
+}
+
+/* The mirror sizes the paper and draws the whitespace marks. Its text is hidden, so the browser's
+   find (Ctrl+F) only finds the real text; the marks are made visible again. */
+.mirror {
+  visibility: hidden;
+  pointer-events: none;
+
+  /* Whitespace marks: · space, → tab, ¶ line break. The dot and arrow are painted on their own
+     character's element, so they add nothing to the layout. ¶ sits in a zero-width box after the
+     line's last character, which only a line break can carry: anywhere else, a box adds a place to
+     break the line. */
+  & i {
+    visibility: visible;
+    font-style: normal;
+  }
+
+  & .space {
+    background: radial-gradient(circle, var(--mark) 0.07em, transparent 0.09em);
+  }
+
+  & .tab {
+    --arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M1.5 5h6.5M5.5 2.5 8 5 5.5 7.5' fill='none' stroke='black' stroke-width='0.9'/%3E%3C/svg%3E") left center / 1ch 1ch no-repeat;
+    background: var(--mark);
+    mask: var(--arrow);
+  }
+
+  & .break::before {
+    content: '¶';
+    display: inline-block;
+    width: 0;
+    color: var(--mark);
+  }
+}
+
+.ruler {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  visibility: hidden;
+}
+
+footer {
+  position: fixed;
+  inset-inline-end: var(--gap);
+  inset-block-end: var(--gap);
+  font: calc(3.175 * var(--mm)) / var(--line-height) var(--font);
+  text-align: end;
+  white-space: pre-line;
+  color: var(--muted);
+}
+
+footer::after {
+  content: attr(data-counts);
+}
+
+@media (aspect-ratio <= 4 / 3) {
+  footer {
+    display: none;
+  }
+}
+
+article {
+  margin-block-end: var(--gap);
+  counter-reset: page;
+}
+
+section {
+  position: relative;
+  height: calc(var(--sheet-height) * var(--mm));
+  padding: var(--page-margin) var(--page-margin) calc(var(--sheet-foot) * var(--mm));
+  border-radius: 2px;
+  counter-increment: page;
+}
+
+section + section {
+  margin-block-start: var(--gap);
+}
+
+section::after {
+  content: counter(page);
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: calc(12.7 * var(--mm));
+  font-size: 0.75em;
+  text-align: center;
+  color: var(--muted);
+}
+
+@page {
+  size: A4;
+  margin: 0;
+}
+
+@media print {
+  :root {
+    --mm: 1mm;
+    color-scheme: light;
+  }
+
+  html {
+    background: none;
+  }
+
+  article,
+  section {
+    margin: 0;
+    background: none;
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  section {
+    height: auto;
+    padding-block-end: 0;
+  }
+
+  section:not(:last-child) {
+    break-after: page;
+  }
+
+  footer,
+  section::after {
+    display: none;
+  }
+}
